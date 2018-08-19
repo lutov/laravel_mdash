@@ -1,6 +1,6 @@
 {
-	"name": "lutov/laravel_mdash",
-	"description": "Evgeny Muravjev Typograph compatible with Laravel 4, http://mdash.ru",
+	"name": "lutov/mdash",
+	"description": "Evgeny Muravjev Typograph compatible with Laravel, http://mdash.ru",
 	"license": "GPL-3.0+",
 	"require": {
 		"php": ">=5.3.0"

@@ -1,4 +1,4 @@
-laravel_mdash
+mdash
 =============
 
 Evgeny Muravjev Typograph, http://mdash.ru
