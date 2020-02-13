@@ -205,9 +205,13 @@ class EMT_Lib
     public static function safe_tag_chars($text, $way)
     {
     	if ($way) 
-        	$text = preg_replace_callback('/(\<\/?)([^<>]+?)(\>)/s', create_function('$m','return (strlen($m[1])==1 && substr(trim($m[2]), 0, 1) == \'-\' && substr(trim($m[2]), 1, 1) != \'-\')? $m[0] : $m[1].( substr(trim($m[2]), 0, 1) === "a" ? "%%___"  : ""  ) . EMT_Lib::encrypt_tag(trim($m[2]))  . $m[3];'), $text);
+        	$text = preg_replace_callback('/(\<\/?)([^<>]+?)(\>)/s', function($m) {
+        		return (strlen($m[1])==1 && substr(trim($m[2]), 0, 1) == '-' && substr(trim($m[2]), 1, 1) != '-')? $m[0] : $m[1].( substr(trim($m[2]), 0, 1) === "a" ? "%%___"  : ""  ) . EMT_Lib::encrypt_tag(trim($m[2]))  . $m[3];
+        	}, $text);
         else
-        	$text = preg_replace_callback('/(\<\/?)([^<>]+?)(\>)/s', create_function('$m','return (strlen($m[1])==1 && substr(trim($m[2]), 0, 1) == \'-\' && substr(trim($m[2]), 1, 1) != \'-\')? $m[0] : $m[1].( substr(trim($m[2]), 0, 3) === "%%___" ? EMT_Lib::decrypt_tag(substr(trim($m[2]), 4)) : EMT_Lib::decrypt_tag(trim($m[2])) ) . $m[3];'), $text);	
+        	$text = preg_replace_callback('/(\<\/?)([^<>]+?)(\>)/s', function($m) {
+        		return (strlen($m[1])==1 && substr(trim($m[2]), 0, 1) == '-' && substr(trim($m[2]), 1, 1) != '-')? $m[0] : $m[1].( substr(trim($m[2]), 0, 3) === "%%___" ? EMT_Lib::decrypt_tag(substr(trim($m[2]), 4)) : EMT_Lib::decrypt_tag(trim($m[2])) ) . $m[3];
+			}, $text);
         return $text;
     }
     
@@ -220,7 +224,9 @@ class EMT_Lib
      */
     public static function decode_internal_blocks($text)
     {
-    	$text = preg_replace_callback('/'.EMT_Lib::INTERNAL_BLOCK_OPEN.'([a-zA-Z0-9\/=]+?)'.EMT_Lib::INTERNAL_BLOCK_CLOSE.'/s', create_function('$m','return EMT_Lib::decrypt_tag($m[1]);'), $text);	
+    	$text = preg_replace_callback('/'.EMT_Lib::INTERNAL_BLOCK_OPEN.'([a-zA-Z0-9\/=]+?)'.EMT_Lib::INTERNAL_BLOCK_CLOSE.'/s', function($m) {
+    		return EMT_Lib::decrypt_tag($m[1]);
+		}, $text);
         return $text;
     }
     
@@ -657,13 +663,13 @@ class EMT_Lib
 	public static function convert_html_entities_to_unicode(&$text)
 	{
 		$text = preg_replace_callback("/\&#([0-9]+)\;/", 
-				create_function('$m', 'return EMT_Lib::_getUnicodeChar(intval($m[1]));')
+				function($m) {return EMT_Lib::_getUnicodeChar(intval($m[1]));}
 				, $text);
 		$text = preg_replace_callback("/\&#x([0-9A-F]+)\;/", 
-				create_function('$m', 'return EMT_Lib::_getUnicodeChar(hexdec($m[1]));')
+				function($m) {return EMT_Lib::_getUnicodeChar(hexdec($m[1]));}
 				, $text);
 		$text = preg_replace_callback("/\&([a-zA-Z0-9]+)\;/", 
-				create_function('$m', '$r = EMT_Lib::html_char_entity_to_unicode($m[1]); return $r ? $r : $m[0];')
+				function($m) {$r = EMT_Lib::html_char_entity_to_unicode($m[1]); return $r ? $r : $m[0];}
 				, $text);
 	}
 	
@@ -913,7 +919,7 @@ class EMT_Tret {
 					}
 					$this->error('Функция '.$rule['function'].' из правила '.$rule['id']. " не найдена");
 				} else {
-					$this->_text = preg_replace_callback($rule['pattern'],  create_function('$m', $rule['function']), $this->_text);
+					$this->_text = preg_replace_callback($rule['pattern'],  function($m) use ($rule) {$rule['function'];}, $this->_text);
 					$this->log('Замена с использованием preg_replace_callback с инлайн функцией из правила '.$rule['id']);
 					return;
 				}
@@ -2085,7 +2091,7 @@ class EMT_Tret_Quote extends EMT_Tret
 							if($__ax)
 							{
 								$k = preg_replace_callback("/(^|[^0-9])([0-9]+)\&raquo\;/ui", 
-									create_function('$m','global $__ax,$__ay; $__ay++; if($__ay==$__ax){ return $m[1].$m[2]."&Prime;";} return $m[0];'), 
+									function($m) {global $__ax,$__ay; $__ay++; if($__ay==$__ax){ return $m[1].$m[2]."&Prime;";} return $m[0];},
 									$k);
 								$amount = 1;
 							}
@@ -2644,7 +2650,7 @@ class EMT_Base
     		$safeblocks = true === $way ? $this->_safe_blocks : array_reverse($this->_safe_blocks);
        		foreach ($safeblocks as $block) 
        		{
-        		$text = preg_replace_callback("/({$block['open']})(.+?)({$block['close']})/s",   create_function('$m','return $m[1].'.$safeType . '.$m[3];')   , $text);
+        		$text = preg_replace_callback("/({$block['open']})(.+?)({$block['close']})/s", function($m) use ($safeType) {return $m[1].$safeType.$m[3];}, $text);
         	}
     	}
     	
@@ -3172,6 +3178,7 @@ class EMT_Base
 		{
 			if(isset($setupmap['map']))
 			{
+				global $test; // ?
 				$ret['map'] = $test['params']['map'];
 				$ret['disable'] = $test['params']['map_disable'];
 				$ret['strict'] = $test['params']['map_strict'];
